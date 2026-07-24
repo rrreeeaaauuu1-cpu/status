@@ -19,7 +19,7 @@ import { buildSvg, imageMeta, toBase64 } from "../../lib/render.js";
 
 const BG_PATH = "/bg.png";
 const FONT_PATH = "/font.otf";
-const FONT_FAMILY = "Noto Sans CJK KR"; // font.otf 의 실제 패밀리명
+const FONT_FAMILY = "Do Hyeon"; // font.otf 의 실제 패밀리명 (배달의민족 도현체)
 
 // isolate 재사용 시 중복 초기화/디코딩 방지
 let wasmReady = null;
