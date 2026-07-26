@@ -15,6 +15,9 @@
   input{width:100%;padding:9px 11px;background:#0d0608;border:1px solid #4a2530;border-radius:6px;color:#fff;font-size:14px}
   input:focus{outline:none;border-color:var(--purple)}
   .hint{font-size:11px;color:#888;margin-top:3px}
+  .checks{display:flex;gap:18px;margin-top:4px}
+  .ck{display:flex;align-items:center;gap:6px;color:#fff;font-weight:400;margin:0;cursor:pointer}
+  .ck input{width:auto}
   .out{margin-top:22px;background:var(--card);border:1px solid #3a1c22;border-radius:10px;padding:14px}
   .out b{color:var(--purple);font-size:12px;letter-spacing:.5px}
   textarea{width:100%;height:64px;margin-top:6px;background:#0d0608;border:1px solid #4a2530;border-radius:6px;color:#9fe6b0;font-size:12px;padding:8px;resize:vertical}
@@ -37,6 +40,15 @@
   <input id="damage" placeholder="좌측 전완 결손.늑골 3개 파손.경추 봉합 불안정">
   <label>INVENTORY · 소지품 (최대 5개, 마침표로 구분)</label>
   <input id="inventory" placeholder="구형 리볼버.탄창 2개.붕대.진통제.식별표">
+  <label>FACTION · 소속</label>
+  <input id="faction" placeholder="예: 에덴 본부 / 없음">
+  <label>소유 장치 (배경이 바뀝니다)</label>
+  <div class="checks">
+    <label class="ck"><input type="checkbox" id="thruster"> 비개현성 추진기</label>
+    <label class="ck"><input type="checkbox" id="halo"> 헤일로</label>
+  </div>
+  <label>출력 % (노멀 배경에서는 표시 안 됨)</label>
+  <input id="power" placeholder="예: 73 (숫자만)">
 
   <div class="out">
     <b>마크다운 (크랙에 붙여넣기)</b>
@@ -47,17 +59,20 @@
   </div>
 </div>
 <script>
-  const ids = ["status","state","damage","inventory"];
+  const ids = ["status","state","damage","inventory","faction","power"];
+  const checks = ["thruster","halo"];
   // 이 페이지가 올라간 도메인의 /api/status 를 그대로 사용
   const base = location.origin + "/api/status";
   function build(){
     const p = new URLSearchParams();
     ids.forEach(id=>{ const v=document.getElementById(id).value.trim(); if(v) p.set(id, v); });
+    checks.forEach(id=>{ if(document.getElementById(id).checked) p.set(id, "1"); });
     const url = base + "?" + p.toString();
     document.getElementById("md").value = "![](" + url + ")";
     document.getElementById("prev").src = url + (p.toString()? "&":"?") + "_t=" + Date.now();
   }
   ids.forEach(id=>document.getElementById(id).addEventListener("input", build));
+  checks.forEach(id=>document.getElementById(id).addEventListener("change", build));
   function copyMd(){ const t=document.getElementById("md"); t.select(); document.execCommand("copy"); }
   build();
 </script>
