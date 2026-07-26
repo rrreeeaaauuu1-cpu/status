@@ -48,9 +48,19 @@ function truthy(v) {
   return v === "1" || v === "true" || v === "y" || v === "yes" || v === "on" || v === "o";
 }
 
+function isImage(b) {
+  const png = b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
+  const jpg = b[0] === 0xff && b[1] === 0xd8;
+  return png || jpg;
+}
+
 async function loadBg(path, request, env) {
   if (BG_CACHE.has(path)) return BG_CACHE.get(path);
   const bytes = new Uint8Array(await fetchAsset(path, request, env));
+  // 파일이 없으면 Cloudflare 가 HTML(도구 페이지)을 돌려주므로, 이미지인지 확인
+  if (!isImage(bytes)) {
+    throw new Error("배경 파일이 없거나 이미지가 아닙니다: " + path + " (레포에 이 이름으로 업로드했는지 확인하세요)");
+  }
   const { w, h, mime } = imageMeta(bytes);
   const entry = { dataUri: `data:${mime};base64,${toBase64(bytes)}`, w, h };
   BG_CACHE.set(path, entry);
@@ -95,7 +105,7 @@ export async function onRequest(context) {
 
     // 출력% (노멀 배경이 아니고 값이 있을 때만)
     const powerRaw = (q.get("power") || "").replace(/%/g, "").trim();
-    const powerText = !isNormal && powerRaw ? `출력 ${powerRaw}%` : "";
+    const powerText = !isNormal && powerRaw ? `${powerRaw}%` : "";
 
     const svg = buildSvg(
       {
