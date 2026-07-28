@@ -89,6 +89,14 @@ export async function onRequest(context) {
       loadFont(fp, request, env),
     ]);
 
+    // 도서관 모드의 킬 카운트는 KOTRA(font.otf)로 표시 → 별도 로드
+    const kill = (q.get("kill") || "").trim();
+    const assets = { overlayDataUri, fontDataUri, fontFormat: fp.format };
+    if (library && kill && kill.toLowerCase() !== "none") {
+      assets.killFontDataUri = await loadFont(FONT_NORMAL, request, env);
+      assets.killFontFormat = FONT_NORMAL.format;
+    }
+
     const powerRaw = (q.get("power") || "").replace(/%/g, "").trim();
     const power = !isNormal && powerRaw ? `${powerRaw}%` : "";
 
@@ -107,8 +115,9 @@ export async function onRequest(context) {
         sut: q.get("sut") || "",
         fire: q.get("fire") || "",
         library,
+        kill,
       },
-      { overlayDataUri, fontDataUri, fontFormat: fp.format }
+      assets
     );
 
     return new Response(svg, {
