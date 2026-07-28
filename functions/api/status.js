@@ -30,12 +30,16 @@
 
 import { buildSvg, imageMeta, toBase64 } from "../../lib/render.js";
 
-const FONT_PATH = "/font.otf";
+// OVERLAP(현세) 오버레이 / 도서관(LIBR, 저승) 오버레이
 const OVERLAY = { n: "/bg.png", t: "/bg_thruster.png", h: "/bg_halo.png", b: "/bg_both.png" };
+const OVERLAY_LIB = { n: "/libr.png", t: "/libr_thruster.png", h: "/libr_halo.png", b: "/libr_both.png" };
+// 폰트: 현세=도현/KOTRA(font.otf), 도서관=아리따부리(font2.woff2)
+const FONT_NORMAL = { path: "/font.otf", mime: "font/otf", format: "opentype" };
+const FONT_LIB = { path: "/font2.woff2", mime: "font/woff2", format: "woff2" };
 
 // isolate 재사용 캐시
 const ASSET_CACHE = new Map(); // path -> dataUri
-let FONT_CACHE = null;
+const FONT_CACHE = new Map();  // path -> dataUri
 
 async function fetchAsset(path, request, env) {
   const url = new URL(path, request.url).toString();
@@ -59,11 +63,12 @@ async function loadOverlay(path, request, env) {
   return uri;
 }
 
-async function loadFont(request, env) {
-  if (FONT_CACHE) return FONT_CACHE;
-  const bytes = await fetchAsset(FONT_PATH, request, env);
-  FONT_CACHE = `data:font/otf;base64,${toBase64(bytes)}`;
-  return FONT_CACHE;
+async function loadFont(fp, request, env) {
+  if (FONT_CACHE.has(fp.path)) return FONT_CACHE.get(fp.path);
+  const bytes = await fetchAsset(fp.path, request, env);
+  const uri = `data:${fp.mime};base64,${toBase64(bytes)}`;
+  FONT_CACHE.set(fp.path, uri);
+  return uri;
 }
 
 export async function onRequest(context) {
@@ -72,12 +77,16 @@ export async function onRequest(context) {
 
   try {
     const s = (q.get("s") || "n").toLowerCase();
-    const overlayPath = OVERLAY[s] || OVERLAY.n;
+    const nest = (q.get("nest") || "").trim();
+    const library = nest.toUpperCase() === "LIBR"; // NEST=LIBR → 도서관(저승) 모드
+    const ovSet = library ? OVERLAY_LIB : OVERLAY;
+    const overlayPath = ovSet[s] || ovSet.n;
+    const fp = library ? FONT_LIB : FONT_NORMAL;
     const isNormal = !(s === "t" || s === "h" || s === "b");
 
     const [overlayDataUri, fontDataUri] = await Promise.all([
       loadOverlay(overlayPath, request, env),
-      loadFont(request, env),
+      loadFont(fp, request, env),
     ]);
 
     const powerRaw = (q.get("power") || "").replace(/%/g, "").trim();
@@ -90,15 +99,16 @@ export async function onRequest(context) {
         l: q.get("l") || "",
         f: q.get("f") || "",
         tn: q.get("tn") || "",
-        nest: q.get("nest") || "",
+        nest,
         power,
         inv: q.get("inv") || "",
         rel: q.get("rel") || "",
         dmg: q.get("dmg") || "",
         sut: q.get("sut") || "",
         fire: q.get("fire") || "",
+        library,
       },
-      { overlayDataUri, fontDataUri }
+      { overlayDataUri, fontDataUri, fontFormat: fp.format }
     );
 
     return new Response(svg, {
