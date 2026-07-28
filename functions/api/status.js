@@ -96,6 +96,7 @@ export async function onRequest(context) {
         rel: q.get("rel") || "",
         dmg: q.get("dmg") || "",
         sut: q.get("sut") || "",
+        fire: q.get("fire") || "",
       },
       { overlayDataUri, fontDataUri }
     );
