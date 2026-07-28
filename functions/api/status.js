@@ -30,12 +30,11 @@
 
 import { buildSvg, imageMeta, toBase64 } from "../../lib/render.js";
 
-// OVERLAP(현세) 오버레이 / 도서관(LIBR, 저승) 오버레이
+// 현세(NEST) 오버레이 / 도서관(LIBR) 오버레이 — 엠블럼 이미지만 다르고 나머지 디자인 동일
 const OVERLAY = { n: "/bg.png", t: "/bg_thruster.png", h: "/bg_halo.png", b: "/bg_both.png" };
 const OVERLAY_LIB = { n: "/libr.png", t: "/libr_thruster.png", h: "/libr_halo.png", b: "/libr_both.png" };
-// 폰트: 현세=도현/KOTRA(font.otf), 도서관=아리따부리(font2.woff2)
+// 폰트: 양쪽 모두 KOTRA 볼드(font.otf)
 const FONT_NORMAL = { path: "/font.otf", mime: "font/otf", format: "opentype" };
-const FONT_LIB = { path: "/font2.woff2", mime: "font/woff2", format: "woff2" };
 
 // isolate 재사용 캐시
 const ASSET_CACHE = new Map(); // path -> dataUri
@@ -81,7 +80,7 @@ export async function onRequest(context) {
     const library = nest.toUpperCase() === "LIBR"; // NEST=LIBR → 도서관(저승) 모드
     const ovSet = library ? OVERLAY_LIB : OVERLAY;
     const overlayPath = ovSet[s] || ovSet.n;
-    const fp = library ? FONT_LIB : FONT_NORMAL;
+    const fp = FONT_NORMAL; // 양쪽 모두 KOTRA
     const isNormal = !(s === "t" || s === "h" || s === "b");
 
     const [overlayDataUri, fontDataUri] = await Promise.all([
@@ -89,13 +88,8 @@ export async function onRequest(context) {
       loadFont(fp, request, env),
     ]);
 
-    // 도서관 모드의 킬 카운트는 KOTRA(font.otf)로 표시 → 별도 로드
     const kill = (q.get("kill") || "").trim();
     const assets = { overlayDataUri, fontDataUri, fontFormat: fp.format };
-    if (library && kill && kill.toLowerCase() !== "none") {
-      assets.killFontDataUri = await loadFont(FONT_NORMAL, request, env);
-      assets.killFontFormat = FONT_NORMAL.format;
-    }
 
     const powerRaw = (q.get("power") || "").replace(/%/g, "").trim();
     const power = !isNormal && powerRaw ? `${powerRaw}%` : "";
